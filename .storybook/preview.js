@@ -1,4 +1,5 @@
 import React from 'react';
+import { StylesProvider } from '@mui/styles';
 import { Theme } from "../src/theme";
 
 // https://storybook.js.org/docs/react/writing-stories/parameters#global-parameters
@@ -8,9 +9,11 @@ export const parameters = {
 };
 
 export const decorators = [
-    Story => (
-        <Theme>
-            <Story />
-        </Theme>
+    (Story) => (
+        <StylesProvider injectFirst>
+            <Theme>
+                <Story />
+            </Theme>
+        </StylesProvider >
     ),
-];
+]
