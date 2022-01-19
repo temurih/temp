@@ -1,0 +1,66 @@
+name: Publish
+on:
+    push:
+        branches:
+            - main
+            - master
+
+jobs:
+    release:
+        if: contains(github.event.pull_request.labels.*.name, 'release')
+        runs-on: ubuntu-latest
+        name: Bump version and Publish
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v1
+              with:
+                  persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+                  fetch-depth: 0 # otherwise, you will failed to push refs to dest repo
+
+            - name: Use Node 12.x
+              uses: actions/setup-node@v1
+              with:
+                  node-version: 12.x
+                  always-auth: true
+
+            - name: Install packages
+              run: yarn install
+
+            - name: Git config
+              run: |
+                  git config --local user.email "temurih@live.co.uk"
+                  git config --local user.name "temurih"
+
+            - name: Major version bump
+              if: contains(github.event.pull_request.labels.*.name, 'major')
+              run: yarn version --major
+
+            - name: Minor version bump
+              if:
+                  contains(github.event.pull_request.labels.*.name, 'minor') &&
+                  contains(github.event.pull_request.labels.*.name, 'major') !=
+                  true
+              run: yarn version --minor
+
+            - name: Patch version
+              if:
+                  contains(github.event.pull_request.labels.*.name, 'minor') !=
+                  true && contains(github.event.pull_request.labels.*.name,
+                  'major') != true
+              run: yarn version --patch
+
+            - name: Push changes
+              uses: ad-m/github-push-action@master
+              with:
+                  github_token: ${{ secrets.NODE_AUTH_TOKEN }}
+                  branch: master
+
+            - name: Publish latest to GPR
+              if: contains(github.event.pull_request.labels.*.name, 'release')
+              run: |
+                  echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" > ~/.npmrc
+                  yarn publish . --tag latest
+
+              env:
+                  GITHUB_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
